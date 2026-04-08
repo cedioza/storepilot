@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: storepilot-web
     restart: always
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/prisma/data/dev.db
