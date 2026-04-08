@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: storepilot-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/prisma/data/dev.db
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - storepilot_sqlite:/app/prisma/data
+
+volumes:
+  storepilot_sqlite:
+    name: storepilot_sqlite

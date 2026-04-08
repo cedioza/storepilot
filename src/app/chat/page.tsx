@@ -11,6 +11,8 @@ type Message = {
   data?: any;
 };
 
+type Role = "FREE" | "PRO" | "ENTERPRISE";
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -22,6 +24,7 @@ export default function ChatPage() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeRole, setActiveRole] = useState<Role>("PRO"); // Selector de rol para la demo
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -32,24 +35,30 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // LLamada real a tu API en /api/chat
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage.content })
+        body: JSON.stringify({ message: userMessage.content, role: activeRole })
       });
       
       const data = await response.json();
       
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.reply || "He procesado tu solicitud.",
-        agent: data.agent,
-        data: data.structured_data
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+      if (data.error) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.error
+        }]);
+      } else {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.reply || "He procesado tu solicitud.",
+          agent: data.agent,
+          data: data.structured_data
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      }
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, {
@@ -81,11 +90,27 @@ export default function ChatPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
-      {/* Header */}
-      <div className="h-16 border-b border-[#27272A] flex items-center px-8 bg-[#18181B]/80 backdrop-blur-md sticky top-0 z-10">
-        <h1 className="text-xl font-bold font-['Space_Grotesk']">Chat con tu Equipo</h1>
-        <div className="ml-6 flex items-center gap-3 text-xs font-medium text-zinc-400">
-          <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online</span>
+      {/* Header with Role Selector */}
+      <div className="h-16 border-b border-[#27272A] flex items-center justify-between px-8 bg-[#18181B]/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center">
+          <h1 className="text-xl font-bold font-['Space_Grotesk']">Chat con tu Equipo</h1>
+          <div className="ml-6 flex items-center gap-3 text-xs font-medium text-zinc-400">
+            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online</span>
+          </div>
+        </div>
+        
+        {/* Simulación de Login/Rol para Demo */}
+        <div className="flex items-center gap-2 text-sm bg-[#27272A] p-1 rounded-lg border border-white/5">
+          <span className="text-zinc-400 px-2">Demo Role:</span>
+          <select 
+            className="bg-[#18181B] text-white border border-white/10 rounded px-2 py-1 outline-none"
+            value={activeRole}
+            onChange={(e) => setActiveRole(e.target.value as Role)}
+          >
+            <option value="FREE">Local Shop (Free)</option>
+            <option value="PRO">Boutique (Pro)</option>
+            <option value="ENTERPRISE">Multi-Store (Enterprise)</option>
+          </select>
         </div>
       </div>
 
