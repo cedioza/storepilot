@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=file:/app/prisma/data/dev.db
     container_name: storepilot-web
     restart: always
     expose:

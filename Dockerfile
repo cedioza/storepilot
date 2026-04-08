@@ -12,6 +12,11 @@ RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
+
+# Accept DATABASE_URL as build argument
+ARG DATABASE_URL=file:./data/dev.db
+ENV DATABASE_URL=$DATABASE_URL
+
 RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
