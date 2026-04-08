@@ -18,6 +18,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client and build
+# Explicitly use Prisma v5 to avoid v7 breaking changes with datasource url
+RUN npm install prisma@5.22.0 @prisma/client@5.22.0
 RUN npx prisma generate
 RUN npm run build
 
@@ -47,5 +49,5 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Apply migrations/push before starting (useful for sqlite init)
-CMD npx prisma db push --accept-data-loss && node server.js
+# Apply migrations/push before starting using Prisma v5 explicitly
+CMD npx prisma@5.22.0 db push --accept-data-loss && node server.js
