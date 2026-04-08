@@ -17,9 +17,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client and build
-# Prisma 5.22.0 is already in package.json, no need to reinstall
+# Generate Prisma client
 RUN npx prisma generate
+
+# Run database push at BUILD TIME (not at container startup)
+RUN npx prisma db push --accept-data-loss
+
+# Build Next.js
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -48,5 +52,5 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Apply migrations/push before starting using Prisma v5 explicitly
-CMD ["sh", "-c", "npx prisma@5 db push --accept-data-loss && node server.js"]
+# Just run the server - DB is already set up from build
+CMD ["node", "server.js"]
