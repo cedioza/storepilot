@@ -1,28 +1,35 @@
+"use client";
+
+import { useUser } from "@/lib/UserContext";
 import { Package, Search, Plus, AlertTriangle, ChevronDown } from "lucide-react";
+import { useState } from "react";
 
-const products = [
-  { id: "1", name: "Sneakers Limitados Vol 1", sku: "SNK-V1-001", price: 2500, stock: 3, category: "Calzado", status: "low" },
-  { id: "2", name: "Jacket de Cuero Vegano", sku: "JKT-CVO-002", price: 1800, stock: 12, category: "Ropa", status: "ok" },
-  { id: "3", name: "Pantalón Cargo Negro", sku: "PNT-CRG-003", price: 890, stock: 45, category: "Ropa", status: "ok" },
-  { id: "4", name: "Camiseta Básica Blanca", sku: "CMT-BSC-004", price: 250, stock: 67, category: "Ropa", status: "ok" },
-  { id: "5", name: "Gorra Beisbol Logo", sku: "GRP-BSL-005", price: 300, stock: 23, category: "Accesorios", status: "ok" },
-  { id: "6", name: "Laptop Pro 16\"", sku: "LAP-PRO-006", price: 45000, stock: 0, category: "Electrónica", status: "out" },
-  { id: "7", name: "Monitor 4K Curved", sku: "MON-4KC-007", price: 12000, stock: 8, category: "Electrónica", status: "low" },
-  { id: "8", name: "Teclado Mecánico", sku: "TEC-MEC-008", price: 2500, stock: 2, category: "Electrónica", status: "low" },
-];
-
-const categories = ["Todos", "Ropa", "Calzado", "Accesorios", "Electrónica"];
+const categories = ["Todos", "Ropa", "Calzado", "Accesorios", "Electrónica", "Computación", "Periféricos", "Audio", "Almacenamiento", "Componentes"];
 
 export default function InventoryPage() {
-  const lowStockCount = products.filter(p => p.stock > 0 && p.stock < 10).length;
-  const outOfStockCount = products.filter(p => p.stock === 0).length;
+  const { currentUser, inventorySummary } = useUser();
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+
+  const filteredProducts = currentUser.products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) || 
+                         product.sku.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const getStatus = (stock: number) => {
+    if (stock === 0) return { label: "Agotado", color: "red" };
+    if (stock < 10) return { label: "Bajo", color: "amber" };
+    return { label: "OK", color: "emerald" };
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold font-['Space_Grotesk'] tracking-tight">Inventario</h1>
-          <p className="text-zinc-400 mt-1">Gestiona tus productos y stock</p>
+          <p className="text-zinc-400 mt-1">{currentUser.name} — {currentUser.products.length} productos</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-medium transition-colors">
           <Plus className="h-4 w-4" />
@@ -31,27 +38,34 @@ export default function InventoryPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-4 mb-8">
         <div className="rounded-xl bg-[#27272A] p-6 border border-white/5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-zinc-400">Total Productos</p>
             <Package className="h-5 w-5 text-zinc-400" />
           </div>
-          <p className="text-3xl font-semibold text-white mt-2">{products.length}</p>
+          <p className="text-3xl font-semibold text-white mt-2">{currentUser.products.length}</p>
         </div>
         <div className="rounded-xl bg-[#27272A] p-6 border border-white/5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-zinc-400">Stock Bajo</p>
             <AlertTriangle className="h-5 w-5 text-amber-500" />
           </div>
-          <p className="text-3xl font-semibold text-amber-500 mt-2">{lowStockCount}</p>
+          <p className="text-3xl font-semibold text-amber-500 mt-2">{inventorySummary.lowStockCount}</p>
         </div>
         <div className="rounded-xl bg-[#27272A] p-6 border border-white/5">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-zinc-400">Agotados</p>
             <AlertTriangle className="h-5 w-5 text-red-500" />
           </div>
-          <p className="text-3xl font-semibold text-red-500 mt-2">{outOfStockCount}</p>
+          <p className="text-3xl font-semibold text-red-500 mt-2">{inventorySummary.outOfStockCount}</p>
+        </div>
+        <div className="rounded-xl bg-[#27272A] p-6 border border-white/5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-zinc-400">Valor Inventario</p>
+            <Package className="h-5 w-5 text-emerald-500" />
+          </div>
+          <p className="text-3xl font-semibold text-emerald-500 mt-2">${(inventorySummary.totalValue / 1000).toFixed(1)}k</p>
         </div>
       </div>
 
@@ -62,14 +76,19 @@ export default function InventoryPage() {
           <input
             type="text"
             placeholder="Buscar producto..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-[#27272A] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50"
           />
         </div>
-        <div className="flex items-center gap-2 bg-[#27272A] rounded-lg p-1">
+        <div className="flex items-center gap-2 bg-[#27272A] rounded-lg p-1 overflow-x-auto">
           {categories.map((cat) => (
             <button
               key={cat}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${cat === 'Todos' ? 'bg-emerald-500 text-white' : 'text-zinc-400 hover:text-white'}`}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                selectedCategory === cat ? 'bg-emerald-500 text-white' : 'text-zinc-400 hover:text-white'
+              }`}
             >
               {cat}
             </button>
@@ -92,51 +111,54 @@ export default function InventoryPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-t border-white/5 hover:bg-[#1f1f22]/50 transition-colors">
-                <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-white">{product.name}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm text-zinc-400 font-mono">{product.sku}</span>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="text-sm text-zinc-400">{product.category}</span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <span className="text-sm font-medium text-white">${product.price.toLocaleString()}</span>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span className={`text-sm font-medium ${product.stock === 0 ? 'text-red-500' : product.stock < 10 ? 'text-amber-500' : 'text-white'}`}>
-                    {product.stock === 0 ? 'Agotado' : product.stock}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {product.status === 'ok' && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400">
-                      OK
+            {filteredProducts.map((product) => {
+              const status = getStatus(product.stock);
+              return (
+                <tr key={product.id} className="border-t border-white/5 hover:bg-[#1f1f22]/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-medium text-white">{product.name}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-zinc-400 font-mono">{product.sku}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm text-zinc-400">{product.category}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm font-medium text-white">${product.price.toLocaleString()}</span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`text-sm font-medium ${
+                      product.stock === 0 ? 'text-red-500' : product.stock < 10 ? 'text-amber-500' : 'text-white'
+                    }`}>
+                      {product.stock === 0 ? 'Agotado' : product.stock}
                     </span>
-                  )}
-                  {product.status === 'low' && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400">
-                      Bajo
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      status.color === 'emerald' ? 'bg-emerald-500/10 text-emerald-400' :
+                      status.color === 'amber' ? 'bg-amber-500/10 text-amber-400' :
+                      'bg-red-500/10 text-red-400'
+                    }`}>
+                      {status.label}
                     </span>
-                  )}
-                  {product.status === 'out' && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
-                      Agotado
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4">
-                  <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                    <ChevronDown className="h-4 w-4 text-zinc-400" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+                      <ChevronDown className="h-4 w-4 text-zinc-400" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        {filteredProducts.length === 0 && (
+          <div className="p-12 text-center">
+            <Package className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+            <p className="text-zinc-400">No se encontraron productos</p>
+          </div>
+        )}
       </div>
     </div>
   );
